@@ -35,6 +35,12 @@ async function run() {
     // await client.connect();
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
+
+// _____________________________Collections_________________
+
+const userCollections = client.db('uniScholarPath').collection('users');
+
+
 // _____________________________Start________________________
 
 app.post('/jwt', async (req, res) => {
@@ -92,6 +98,16 @@ const verifyAdmin = async (req, res, next) => {
     next();
 }
 
+// user api
+app.post('/users', async (req, res) => {
+    const users = req.body;
+    const existUser = await userCollections.findOne({ email: users.email });
+    if (existUser) {
+        return res.send({ insertedId: null })
+    }
+    const result = await userCollections.insertOne(users);
+    res.send(result);
+});
 
 
 
