@@ -64,6 +64,24 @@ app.get('/logout', async (req, res) => {
         res.status(500).send(err)
     }
 })
+// Verify Token Middleware
+const verifyToken = async (req, res, next) => {
+    const token = req.cookies?.token
+    if (!token) {
+        return res.status(401).send({ message: 'unauthorized access' })
+    }
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+            console.log(err)
+            return res.status(401).send({ message: 'unauthorized access' })
+        }
+        req.user = decoded
+        next()
+    })
+}
+
+
+
 
 // ____________________________X_______________________________
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
