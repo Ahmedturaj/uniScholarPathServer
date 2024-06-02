@@ -189,16 +189,44 @@ async function run() {
         // ____________________________X_______________________________
 
 
-// _______________________________Scholarship___________________
+        // _______________________________Scholarship___________________
 
-app.post('/scholarships', async(req,res)=>{
-    const scholarship= req.body;
-    const result = await scholarshipCollections.insertOne(scholarship);
-    res.send(result);
-})
+        app.post('/scholarships', async (req, res) => {
+            const scholarship = req.body;
+            const result = await scholarshipCollections.insertOne(scholarship);
+            res.send(result);
+        })
 
 
+        app.get('/scholarships', async (req, res) => {
+            const result = await scholarshipCollections.find().toArray();
+            res.send(result);
+        })
 
+        app.patch('/scholarships/:id', async (req, res) => {
+            const updatedScholarship = req.body;
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const updatedDoc = {
+                $set: {
+                    scholarshipName: updatedScholarship.scholarshipName,
+                    universityName: updatedScholarship.universityName,
+                    universityCountry: updatedScholarship.universityCountry,
+                    universityCity: updatedScholarship.universityCity,
+                    universityRank: updatedScholarship.universityRank,
+                    subjectCategory: updatedScholarship.subjectCategory,
+                    scholarshipCategory: updatedScholarship.scholarshipCategory,
+                    degree: updatedScholarship.degree,
+                    tuitionFees: updatedScholarship.tuitionFees,
+                    applicationFees: updatedScholarship.applicationFees,
+                    serviceCharge: updatedScholarship.serviceCharge,
+                    universityLogo: updatedScholarship.universityLogo
+                }
+            };
+        
+            const result = await scholarshipCollections.updateOne(filter, updatedDoc);
+            res.send(result);
+        });
 
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
