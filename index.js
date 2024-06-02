@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
@@ -108,13 +108,83 @@ async function run() {
             const result = await userCollections.insertOne(users);
             res.send(result);
         });
-        // get user
-        app.get('/users', async (req, res) => {
+        // get users
+        app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
 
             const result = await userCollections.find().toArray();
             res.send(result);
         });
+        app.get('/users/:email', async (req, res) => {
+            const result = await userCollections.find({ email: req.params.email }).toArray();
+            res.send(result);
+        });
 
+        app.patch('/users/role/:id', verifyToken, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const { role } = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    role: role
+                }
+            };
+            const result = await userCollections.updateOne(filter, updateDoc);
+            res.send(result);
+        });
+
+        app.get('/users/admin/:email', verifyToken, async (req, res) => {
+
+
+            if (req.params.email !== req.user.email) {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
+
+            const query = { email: req.params.email };
+            const user = await userCollections.findOne(query);
+            let admin = false;
+            if (user) {
+                admin = user?.role === 'admin';
+            }
+            res.send({ admin });
+        })
+
+        app.get('/users/moderator/:email', verifyToken, async (req, res) => {
+
+
+            if (req.params.email !== req.user.email) {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
+
+            const query = { email: req.params.email };
+            const user = await userCollections.findOne(query);
+            let moderator = false;
+            if (user) {
+                moderator = user?.role === 'moderator';
+            }
+            res.send({ moderator });
+        })
+
+        app.get('/users/student/:email', verifyToken, async (req, res) => {
+
+
+            if (req.params.email !== req.user.email) {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
+
+            const query = { email: req.params.email };
+            const user = await userCollections.findOne(query);
+            let student = false;
+            if (user) {
+                student = user?.role === 'user';
+            }
+            res.send({ student });
+        })
+
+        app.delete('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const result = await userCollections.deleteOne({ _id: new ObjectId(id) });
+            res.send(result);
+        })
         // ____________________________X_______________________________
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
