@@ -39,6 +39,7 @@ async function run() {
         // _____________________________Collections_________________
 
         const userCollections = client.db('uniScholarPath').collection('users');
+        const scholarshipCollections = client.db('uniScholarPath').collection('scholarship');
 
 
         // _____________________________Start________________________
@@ -186,6 +187,19 @@ async function run() {
             res.send(result);
         })
         // ____________________________X_______________________________
+
+
+// _______________________________Scholarship___________________
+
+app.post('/scholarships', async(req,res)=>{
+    const scholarship= req.body;
+    const result = await scholarshipCollections.insertOne(scholarship);
+    res.send(result);
+})
+
+
+
+
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
