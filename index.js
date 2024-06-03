@@ -4,7 +4,8 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
-const port = process.env.PORT || 5000
+const port = process.env.PORT || 5000;
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const app = express();
 // middleWare
 const corsOptions = {
@@ -199,7 +200,31 @@ async function run() {
 
 
         app.get('/scholarships', async (req, res) => {
-            const result = await scholarshipCollections.find().toArray();
+            try {
+                const scholarships = await scholarshipCollections.aggregate([
+                    {
+                        $addFields: {
+                            tuitionFeesNumber: { $toDouble: "$tuitionFees" },
+                        }
+                    },
+                    {
+
+
+                        $sort: {
+                            tuitionFeesNumber: 1,  // Sort by tuitionFees in ascending order
+                        }
+                    }
+
+                ]).toArray();
+                res.send(scholarships);
+            } catch (error) {
+                res.status(500).send({ message: 'Failed to fetch scholarships', error });
+            }
+        });
+
+        app.get('/scholarships/:id', verifyToken, async (req, res) => {
+            const id = req.params.id;
+            const result = await scholarshipCollections.findOne({ _id: new ObjectId(id) })
             res.send(result);
         })
 
@@ -223,11 +248,40 @@ async function run() {
                     universityLogo: updatedScholarship.universityLogo
                 }
             };
-        
+
             const result = await scholarshipCollections.updateOne(filter, updatedDoc);
             res.send(result);
         });
 
+        app.delete('/scholarships/:id', async (req, res) => {
+            const id = req.params.id;
+            const result = await scholarshipCollections.deleteOne({ _id: new ObjectId(id) });
+            res.send(result)
+        })
+        //_______________________X______________________ 
+
+
+        //  _____________________Apply____________________
+
+        app.post('/create-payment-intent', async (req, res) => {
+            const { price } = req.body;
+            const amount = parseInt(price * 100);
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                payment_method_types: ["card"],
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        })
+
+
+
+
+
+
+        // ______________________________X____________________________________
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
