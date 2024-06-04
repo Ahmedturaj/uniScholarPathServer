@@ -291,7 +291,7 @@ async function run() {
 
         app.get('/applied-scholarships/:email', async (req, res) => {
             const email = req.params.email;
-            const result = await appliedScholarshipCollections.find({userEmail: email }).toArray();
+            const result = await appliedScholarshipCollections.find({ userEmail: email }).toArray();
             res.send(result);
         })
 
@@ -302,8 +302,45 @@ async function run() {
             const filter = { _id: new ObjectId(id) };
             const updateDoc = {
                 $set: {
+                    feedback: updateItem.feedback && updateItem.feedback,
                     confirmationStatus: updateItem.confirmationStatus,
-                    feedback: updateItem.feedback
+                }
+            };
+            const result = await appliedScholarshipCollections.updateOne(filter, updateDoc);
+            res.send(result);
+        })
+        app.put('/applied-scholarships-status/:id', async (req, res) => {
+
+            const id = req.params.id;
+            const updateItem = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    confirmationStatus: updateItem.confirmationStatus,
+                }
+            };
+            const result = await appliedScholarshipCollections.updateOne(filter, updateDoc);
+            res.send(result);
+        });
+        
+        app.put('/applied-scholarships/:id', async (req, res) => {
+
+            const id = req.params.id;
+            const updateItem = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    confirmationStatus: updateItem.confirmationStatus && updateItem.confirmationStatus,
+                    feedback: updateItem.feedback && updateItem.feedback,
+                    phoneNumber: updateItem.phoneNumber,
+                    address: updateItem.address,
+                    gender: updateItem.gender,
+                    applyingDegree: updateItem.applicationDate,
+                    sscResult: updateItem.sscResult,
+                    hscResult: updateItem.hscResult,
+                    studyGap: updateItem.studyGap,
+                    userName: updateItem.userName,
+                    applicationDate: updateItem.applicationDate,
                 }
             };
             const result = await appliedScholarshipCollections.updateOne(filter, updateDoc);
