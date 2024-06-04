@@ -41,6 +41,7 @@ async function run() {
 
         const userCollections = client.db('uniScholarPath').collection('users');
         const scholarshipCollections = client.db('uniScholarPath').collection('scholarship');
+        const appliedScholarshipCollections = client.db('uniScholarPath').collection('appliedScholarship');
 
 
         // _____________________________Start________________________
@@ -277,9 +278,37 @@ async function run() {
         })
 
 
+        app.post('/applied-scholarships', async (req, res) => {
+            const appliedScholarship = req.body;
+            const result = await appliedScholarshipCollections.insertOne(appliedScholarship);
+            res.send(result)
+        })
 
+        app.get('/applied-scholarships', async (req, res) => {
+            const result = await appliedScholarshipCollections.find().toArray();
+            res.send(result)
+        })
 
+        app.get('/applied-scholarships/:email', async (req, res) => {
+            const email = req.params.email;
+            const result = await appliedScholarshipCollections.find({userEmail: email }).toArray();
+            res.send(result);
+        })
 
+        app.patch('/applied-scholarships/:id', async (req, res) => {
+
+            const id = req.params.id;
+            const updateItem = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    confirmationStatus: updateItem.confirmationStatus,
+                    feedback: updateItem.feedback
+                }
+            };
+            const result = await appliedScholarshipCollections.updateOne(filter, updateDoc);
+            res.send(result);
+        })
 
         // ______________________________X____________________________________
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
