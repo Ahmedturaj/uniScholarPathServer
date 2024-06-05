@@ -42,6 +42,7 @@ async function run() {
         const userCollections = client.db('uniScholarPath').collection('users');
         const scholarshipCollections = client.db('uniScholarPath').collection('scholarship');
         const appliedScholarshipCollections = client.db('uniScholarPath').collection('appliedScholarship');
+        const reviewCollections = client.db('uniScholarPath').collection('reviews');
 
 
         // _____________________________Start________________________
@@ -322,7 +323,7 @@ async function run() {
             const result = await appliedScholarshipCollections.updateOne(filter, updateDoc);
             res.send(result);
         });
-        
+
         app.put('/applied-scholarships/:id', async (req, res) => {
 
             const id = req.params.id;
@@ -330,12 +331,10 @@ async function run() {
             const filter = { _id: new ObjectId(id) };
             const updateDoc = {
                 $set: {
-                    confirmationStatus: updateItem.confirmationStatus && updateItem.confirmationStatus,
-                    feedback: updateItem.feedback && updateItem.feedback,
                     phoneNumber: updateItem.phoneNumber,
                     address: updateItem.address,
                     gender: updateItem.gender,
-                    applyingDegree: updateItem.applicationDate,
+                    applyingDegree: updateItem.applyingDegree,
                     sscResult: updateItem.sscResult,
                     hscResult: updateItem.hscResult,
                     studyGap: updateItem.studyGap,
@@ -347,6 +346,21 @@ async function run() {
             res.send(result);
         })
 
+        // _____________________________review_______________________________
+        app.post('/reviews', async (req, res) => {
+            const reviews = req.body
+            const result = await reviewCollections.insertOne(reviews);
+            res.send(result);
+        })
+        app.get('/reviews', async (req, res) => {
+            const result = await reviewCollections.find().toArray();
+            res.send(result);
+        })
+        app.delete('/reviews/:id', async (req, res) => {
+            const id = req.params.id;
+            const result = await reviewCollections.deleteOne({ _id: new ObjectId(id) });
+            res.send(result);
+        })
         // ______________________________X____________________________________
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
