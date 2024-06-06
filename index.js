@@ -43,6 +43,7 @@ async function run() {
         const scholarshipCollections = client.db('uniScholarPath').collection('scholarship');
         const appliedScholarshipCollections = client.db('uniScholarPath').collection('appliedScholarship');
         const reviewCollections = client.db('uniScholarPath').collection('reviews');
+        const messageCollections = client.db('uniScholarPath').collection('message');
 
 
         // _____________________________Start________________________
@@ -352,13 +353,51 @@ async function run() {
             const result = await reviewCollections.insertOne(reviews);
             res.send(result);
         })
+
+        app.patch('/reviews/:id', async (req, res) => {
+            const id = req.params.id;
+            const updateDoc = req.body;
+            const updateReview = {
+                $set: {
+                    universityName: updateDoc.universityName,
+                    scholarshipName: updateDoc.scholarshipName,
+                    reviewer: updateDoc.reviewer,
+                    reviewRating: updateDoc.reviewRating,
+                    reviewerEmail: updateDoc.reviewerEmail,
+                    reviewComment: updateDoc.reviewComment
+                }
+            }
+            const result = await reviewCollections.updateOne({ _id: new ObjectId(id) }, updateReview)
+            res.send(result);
+        })
+
         app.get('/reviews', async (req, res) => {
             const result = await reviewCollections.find().toArray();
+            res.send(result);
+        })
+        app.get('/reviews/:id', async (req, res) => {
+            const id = req.params.id;
+            const result = await reviewCollections.find({ universityId: id }).toArray();
+            res.send(result);
+        })
+        app.get('/review/:email', async (req, res) => {
+            const email = req.params.email;
+            const result = await reviewCollections.find({ reviewerEmail: email }).toArray();
             res.send(result);
         })
         app.delete('/reviews/:id', async (req, res) => {
             const id = req.params.id;
             const result = await reviewCollections.deleteOne({ _id: new ObjectId(id) });
+            res.send(result);
+        })
+
+        app.post('/message', async (req, res) => {
+            const message = req.body;
+            const result = await messageCollections.insertOne(message);
+            res.send(result)
+        })
+        app.get('/message', async (req, res) => {
+            const result = await messageCollections.find().toArray();
             res.send(result);
         })
         // ______________________________X____________________________________
