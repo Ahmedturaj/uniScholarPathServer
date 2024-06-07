@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const port = process.env.PORT || 5000;
@@ -15,7 +14,6 @@ const corsOptions = {
 }
 app.use(cors(corsOptions))
 app.use(express.json())
-app.use(cookieParser())
 
 
 
@@ -53,47 +51,25 @@ async function run() {
             const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
                 expiresIn: '365d',
             })
-            res.cookie('token', token, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-            }).send({ success: true })
+            res.send({ token })
         })
-
-        // Logout
-        app.get('/logout', async (req, res) => {
-            try {
-                res
-                    .clearCookie('token', {
-                        maxAge: 0,
-                        secure: process.env.NODE_ENV === 'production',
-                        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-                    })
-                    .send({ success: true })
-                console.log('Logout successful')
-            } catch (err) {
-                res.status(500).send(err)
+        // verify Token
+        const verifyToken = (req, res, next) => {
+            if (!req.headers.authorization) {
+                return res.status(401).send({ message: 'unauthorized access' });
             }
-        })
-        // Verify Token Middleware
-        const verifyToken = async (req, res, next) => {
-            const token = req.cookies?.token
-            if (!token) {
-                return res.status(401).send({ message: 'unauthorized access' })
-            }
+            const token = req.headers.authorization.split(' ')[1];
             jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
                 if (err) {
-                    console.log(err)
                     return res.status(401).send({ message: 'unauthorized access' })
                 }
-                req.user = decoded
-                next()
+                req.decoded = decoded;
+                next();
             })
         }
-
         // verifyAdmin
         const verifyAdmin = async (req, res, next) => {
-            const email = req.user.email;
+            const email = req.decoded.email;
             const query = { email: email };
             const user = await userCollections.findOne(query);
             const isAdmin = user?.role === 'admin';
@@ -140,7 +116,7 @@ async function run() {
         app.get('/users/admin/:email', verifyToken, async (req, res) => {
 
 
-            if (req.params.email !== req.user.email) {
+            if (req.params.email !== req.decoded.email) {
                 return res.status(403).send({ message: 'forbidden access' })
             }
 
@@ -156,7 +132,7 @@ async function run() {
         app.get('/users/moderator/:email', verifyToken, async (req, res) => {
 
 
-            if (req.params.email !== req.user.email) {
+            if (req.params.email !== req.decoded.email) {
                 return res.status(403).send({ message: 'forbidden access' })
             }
 
@@ -172,7 +148,7 @@ async function run() {
         app.get('/users/student/:email', verifyToken, async (req, res) => {
 
 
-            if (req.params.email !== req.user.email) {
+            if (req.params.email !== req.decoded.email) {
                 return res.status(403).send({ message: 'forbidden access' })
             }
 
@@ -225,13 +201,13 @@ async function run() {
             }
         });
 
-        app.get('/scholarships/:id', verifyToken, async (req, res) => {
+        app.get('/scholarships/:id', async (req, res) => {
             const id = req.params.id;
             const result = await scholarshipCollections.findOne({ _id: new ObjectId(id) })
             res.send(result);
         })
 
-        app.patch('/scholarships/:id', async (req, res) => {
+        app.patch('/scholarships/:id', verifyToken, async (req, res) => {
             const updatedScholarship = req.body;
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) };
@@ -256,7 +232,7 @@ async function run() {
             res.send(result);
         });
 
-        app.delete('/scholarships/:id', async (req, res) => {
+        app.delete('/scholarships/:id', verifyToken, async (req, res) => {
             const id = req.params.id;
             const result = await scholarshipCollections.deleteOne({ _id: new ObjectId(id) });
             res.send(result)
@@ -266,7 +242,7 @@ async function run() {
 
         //  _____________________Apply____________________
 
-        app.post('/create-payment-intent', async (req, res) => {
+        app.post('/create-payment-intent', verifyToken, async (req, res) => {
             const { price } = req.body;
             const amount = parseInt(price * 100);
             const paymentIntent = await stripe.paymentIntents.create({
@@ -286,18 +262,18 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/applied-scholarships', async (req, res) => {
+        app.get('/applied-scholarships', verifyToken, async (req, res) => {
             const result = await appliedScholarshipCollections.find().toArray();
             res.send(result)
         })
 
-        app.get('/applied-scholarships/:email', async (req, res) => {
+        app.get('/applied-scholarships/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
             const result = await appliedScholarshipCollections.find({ userEmail: email }).toArray();
             res.send(result);
         })
 
-        app.patch('/applied-scholarships/:id', async (req, res) => {
+        app.patch('/applied-scholarships/:id', verifyToken, async (req, res) => {
 
             const id = req.params.id;
             const updateItem = req.body;
@@ -305,13 +281,12 @@ async function run() {
             const updateDoc = {
                 $set: {
                     feedback: updateItem.feedback && updateItem.feedback,
-                    confirmationStatus: updateItem.confirmationStatus,
                 }
             };
             const result = await appliedScholarshipCollections.updateOne(filter, updateDoc);
             res.send(result);
         })
-        app.put('/applied-scholarships-status/:id', async (req, res) => {
+        app.put('/applied-scholarships-status/:id', verifyToken, async (req, res) => {
 
             const id = req.params.id;
             const updateItem = req.body;
@@ -325,7 +300,7 @@ async function run() {
             res.send(result);
         });
 
-        app.put('/applied-scholarships/:id', async (req, res) => {
+        app.put('/applied-scholarships/:id', verifyToken, async (req, res) => {
 
             const id = req.params.id;
             const updateItem = req.body;
@@ -354,7 +329,7 @@ async function run() {
             res.send(result);
         })
 
-        app.patch('/reviews/:id', async (req, res) => {
+        app.patch('/reviews/:id', verifyToken, async (req, res) => {
             const id = req.params.id;
             const updateDoc = req.body;
             const updateReview = {
@@ -375,31 +350,41 @@ async function run() {
             const result = await reviewCollections.find().toArray();
             res.send(result);
         })
-        app.get('/reviews/:id', async (req, res) => {
+        app.get('/reviews/:id', verifyToken, async (req, res) => {
             const id = req.params.id;
             const result = await reviewCollections.find({ universityId: id }).toArray();
             res.send(result);
         })
-        app.get('/review/:email', async (req, res) => {
+        app.get('/review/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
             const result = await reviewCollections.find({ reviewerEmail: email }).toArray();
             res.send(result);
         })
-        app.delete('/reviews/:id', async (req, res) => {
+        app.delete('/reviews/:id', verifyToken, async (req, res) => {
             const id = req.params.id;
             const result = await reviewCollections.deleteOne({ _id: new ObjectId(id) });
             res.send(result);
         })
-
+        // post message
         app.post('/message', async (req, res) => {
             const message = req.body;
             const result = await messageCollections.insertOne(message);
             res.send(result)
         })
-        app.get('/message', async (req, res) => {
+        // get message
+        app.get('/message', verifyToken, async (req, res) => {
             const result = await messageCollections.find().toArray();
             res.send(result);
         })
+
+        // delete message
+        app.delete('/message/:id', verifyToken, async (req, res) => {
+            const id = req.params.id;
+            const result = await messageCollections.deleteOne({ _id: new ObjectId(id) })
+            res.send(result);
+        })
+
+
         // ______________________________X____________________________________
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
