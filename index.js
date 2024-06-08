@@ -8,7 +8,7 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const app = express();
 // middleWare
 const corsOptions = {
-    origin: ['http://localhost:5173', 'http://localhost:5174'],
+    origin: ['https://unischolarpath.web.app', 'https://unischolarpath.firebaseapp.com', 'http://localhost:5173', 'http://localhost:5174'],
     credentials: true,
     optionSuccessStatus: 200,
 }
@@ -201,7 +201,7 @@ async function run() {
             }
         });
 
-        app.get('/scholarships/:id', async (req, res) => {
+        app.get('/scholarships/:id', verifyToken, async (req, res) => {
             const id = req.params.id;
             const result = await scholarshipCollections.findOne({ _id: new ObjectId(id) })
             res.send(result);
